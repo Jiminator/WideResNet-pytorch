@@ -20,7 +20,7 @@ from wideresnet import WideResNet
 parser = argparse.ArgumentParser(description='PyTorch WideResNet Training')
 parser.add_argument('--dataset', default='cifar10', type=str,
                     help='dataset (cifar10 [default] or cifar100)')
-parser.add_argument('--epochs', default=200, type=int,
+parser.add_argument('--epochs', default=100, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
