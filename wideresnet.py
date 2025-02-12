@@ -8,17 +8,20 @@ class BasicBlock(nn.Module):
     def __init__(self, in_planes, out_planes, stride, dropRate=0.0):
         super(BasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
-        self.relu1 = nn.ReLU(inplace=True)
+        # Change inplace=True to inplace=False
+        self.relu1 = nn.ReLU(inplace=False)
         self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                                padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_planes)
-        self.relu2 = nn.ReLU(inplace=True)
+        # Change inplace=True to inplace=False
+        self.relu2 = nn.ReLU(inplace=False)
         self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1,
                                padding=1, bias=False)
         self.droprate = dropRate
         self.equalInOut = (in_planes == out_planes)
         self.convShortcut = (not self.equalInOut) and nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
                                padding=0, bias=False) or None
+
     def forward(self, x):
         if not self.equalInOut:
             x = self.relu1(self.bn1(x))
@@ -60,7 +63,7 @@ class WideResNet(nn.Module):
         self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.fc = nn.Linear(nChannels[3], num_classes)
         self.nChannels = nChannels[3]
 

@@ -13,11 +13,9 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.autograd import Variable
+from profiler import LayerProfiler
 
 from wideresnet import WideResNet
-
-# used for logging to TensorBoard
-from tensorboard_logger import configure, log_value
 
 parser = argparse.ArgumentParser(description='PyTorch WideResNet Training')
 parser.add_argument('--dataset', default='cifar10', type=str,
@@ -48,8 +46,6 @@ parser.add_argument('--resume', default='', type=str,
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--name', default='WideResNet-28-10', type=str,
                     help='name of experiment')
-parser.add_argument('--tensorboard',
-                    help='Log progress to TensorBoard', action='store_true')
 parser.set_defaults(augment=True)
 
 best_prec1 = 0
@@ -57,7 +53,6 @@ best_prec1 = 0
 def main():
     global args, best_prec1
     args = parser.parse_args()
-    if args.tensorboard: configure("runs/%s"%(args.name))
 
     # Data loading code
     normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
@@ -127,14 +122,14 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum, nesterov = args.nesterov,
                                 weight_decay=args.weight_decay)
-
+    profiler = LayerProfiler(model, save_dir=f'runs/{args.name}/profile_data')
     # cosine learning rate
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(train_loader)*args.epochs)
 
     for epoch in range(args.start_epoch, args.epochs):
         # train for one epoch
         train(train_loader, model, criterion, optimizer, scheduler, epoch)
-
+        profiler.save_profile_data(epoch)
         # evaluate on validation set
         prec1 = validate(val_loader, model, criterion, epoch)
 
@@ -146,6 +141,7 @@ def main():
             'state_dict': model.state_dict(),
             'best_prec1': best_prec1,
         }, is_best)
+    profiler.close()
     print('Best accuracy: ', best_prec1)
 
 def train(train_loader, model, criterion, optimizer, scheduler, epoch):
@@ -188,10 +184,6 @@ def train(train_loader, model, criterion, optimizer, scheduler, epoch):
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                       epoch, i, len(train_loader), batch_time=batch_time,
                       loss=losses, top1=top1))
-    # log to TensorBoard
-    if args.tensorboard:
-        log_value('train_loss', losses.avg, epoch)
-        log_value('train_acc', top1.avg, epoch)
 
 def validate(val_loader, model, criterion, epoch):
     """Perform validation on the validation set"""
@@ -230,10 +222,6 @@ def validate(val_loader, model, criterion, epoch):
                       top1=top1))
 
     print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
-    # log to TensorBoard
-    if args.tensorboard:
-        log_value('val_loss', losses.avg, epoch)
-        log_value('val_acc', top1.avg, epoch)
     return top1.avg
 
 
