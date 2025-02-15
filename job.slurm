@@ -21,7 +21,14 @@ module reset # drop modules and explicitly load the ones needed
 module list  # job documentation and metadata
 
 echo "job is starting on `hostname`"
+# Record start time
+start_time=$(date +%s)
 
 # run the container binary with arguments: python3 <program.py>
 # --bind /projects/bbXX  # add to apptainer arguments to mount directory inside container
-apptainer run --nv --bind /scratch/bcrn/jshong /scratch/bcrn/jshong/python.sif /bin/bash -c "python train.py --dataset cifar100 --layers 40 --widen-factor 4"
+# apptainer run --nv --bind /scratch/bcrn/jshong /scratch/bcrn/jshong/python3.sif /bin/bash -c "python train.py --name run_4 --dataset cifar10 --layers 40 --widen-factor 4 --tensorboard"
+apptainer run --nv --bind /scratch/bcrn/jshong /scratch/bcrn/jshong/python3.sif /bin/bash -c "python train.py --name run_5 --dataset cifar10 --layers 52 --widen-factor 38 --epochs 10 --tensorboard"
+end_time=$(date +%s)
+# Compute duration
+duration=$((end_time - start_time))
+echo "Job completed. Duration: $((duration / 3600))h $(((duration % 3600) / 60))m $((duration % 60))s"

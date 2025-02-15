@@ -128,3 +128,66 @@ class LayerProfiler:
         """Remove all hooks"""
         for hook in self.hooks:
             hook.remove()
+            
+import time
+import json
+import os
+from collections import defaultdict
+
+class TrainingTimer:
+    def __init__(self, save_dir='timer_logs'):
+        self.timers = defaultdict(list)
+        self.start_times = {}
+        self.save_dir = save_dir
+        
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        # Define our key metrics
+        self.metrics = [
+            'forward_backward_time',
+            'batch_generator_time',
+            'optimizer_time',
+            'total_step_time'
+        ]
+        
+    def start(self, name):
+        """Start timing for a specific metric"""
+        torch.cuda.synchronize()  # Ensure GPU operations are complete
+        self.start_times[name] = time.perf_counter()
+    
+    def stop(self, name):
+        """Stop timing for a specific metric and record the duration"""
+        torch.cuda.synchronize()  # Ensure GPU operations are complete
+        if name in self.start_times:
+            elapsed = time.perf_counter() - self.start_times.pop(name)
+            self.timers[name].append(elapsed)
+    
+    def reset(self):
+        """Reset all timers"""
+        self.timers.clear()
+        self.start_times.clear()
+    
+    def save_statistics(self, epoch):
+        """Save timing statistics for the epoch"""
+        stats = {}
+        for name, times in self.timers.items():
+            if times:  # Only process metrics that have data
+                stats[name] = {
+                    'avg': sum(times) / len(times),
+                    'min': min(times),
+                    'max': max(times),
+                    'total': sum(times),
+                    'calls': len(times)
+                }
+        
+        filename = os.path.join(self.save_dir, f'timing_epoch_{epoch}.json')
+        with open(filename, 'w') as f:
+            json.dump(stats, f, indent=4)
+        
+        # Print summary
+        print("\nTiming statistics for epoch {}:".format(epoch))
+        for name, metrics in stats.items():
+            print(f"{name:25} | Avg: {metrics['avg']:.4f}s | Total: {metrics['total']:.4f}s")
+        
+        self.reset()
